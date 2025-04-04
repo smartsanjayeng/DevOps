@@ -2,8 +2,6 @@ package com.devops.shopping.service;
 
 import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import com.devops.shopping.entity.Product;
 
 public interface ProductService {
@@ -15,6 +13,6 @@ public interface ProductService {
 
 	Product updateProduct(Long id, Product product);
 
-	void deleteProduct(Long id);
+	boolean deleteProduct(Long id);
 
 }

@@ -19,21 +19,22 @@ public class ProductController {
 		this.productService = productService;
 	}
 
+	@GetMapping("/test/{artist}")
+	public String test(@PathVariable("artist") String artist) {
+		return "hello, "+artist;
+	}
 	@GetMapping
 	public ResponseEntity<List<Product>> getAllProducts() {
 		return ResponseEntity.ok(productService.getAllProducts());
 	}
 
 	@GetMapping("/{id}")
-	public ResponseEntity<String> getProductById(@PathVariable("id") Long id) {
+	public ResponseEntity<?> getProductById(@PathVariable("id") Long id) {
 		Product product = productService.getProductById(id);
 		if (product == null) {
-//	        return new ResponseEntity<>(HttpStatus.NOT_FOUND); // 404 Not Found
-	        return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
+	        return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);// 404 Not Found
 	    }
-//	    return new ResponseEntity<>(product, HttpStatus.OK);
-	    return new ResponseEntity<>(product.toString(), HttpStatus.OK); // Return Product's string representation if needed
-
+	    return new ResponseEntity<>(product, HttpStatus.OK);
 	}
 
 	@PostMapping
@@ -52,8 +53,12 @@ public class ProductController {
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deleteProduct(@PathVariable("id") Long id) {
-		productService.deleteProduct(id);
-		return ResponseEntity.noContent().build();
+	public ResponseEntity<String> deleteProduct(@PathVariable("id") Long id) {
+	    boolean isDeleted = productService.deleteProduct(id);
+	    if (isDeleted) {
+	        return ResponseEntity.ok("Product deleted successfully");
+	    } else {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No product found with ID: " + id);
+	    }
 	}
 }

@@ -9,17 +9,12 @@ import com.devops.shopping.entity.Product;
 import com.devops.shopping.repo.ProductRepository;
 import com.devops.shopping.service.ProductService;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
 @Service
 public class ProductServiceImpl implements ProductService {
 
 	private final ProductRepository productRepository;
-
-	@PersistenceContext
-	private EntityManager entityManager;
 
 	public ProductServiceImpl(ProductRepository productRepository) {
 		this.productRepository = productRepository;
@@ -35,19 +30,9 @@ public class ProductServiceImpl implements ProductService {
 		return productRepository.findById(id).orElse(null);
 	}
 
-	@Transactional
 	@Override
 	public Product createProduct(Product product) {
-//	    product.setVersion(0);  // Ensure version is not null
-	    Product existingProduct = productRepository.findByIdWithLock(product.getId());
-	    if(existingProduct != null) {
-	    	existingProduct.setName(product.getName());
-	    	existingProduct.setPrice(product.getPrice());
-	    	existingProduct.setDescription(product.getDescription());
-	    	return productRepository.save(existingProduct);
-	    }else {
-	    	return productRepository.save(product);
-	    }
+		return productRepository.save(product);
 	}
 
 	@Transactional
@@ -57,23 +42,23 @@ public class ProductServiceImpl implements ProductService {
 			Product existingProduct = productRepository.findById(id)
 					.orElseThrow(() -> new RuntimeException("Product not found"));
 
-			// Ensure the latest version is fetched
-			entityManager.refresh(existingProduct);
-
 			existingProduct.setName(product.getName());
 			existingProduct.setDescription(product.getDescription());
 			existingProduct.setPrice(product.getPrice());
 
-			return productRepository.saveAndFlush(existingProduct); // Force immediate DB update
+			return productRepository.save(existingProduct); // Force immediate DB update
 		} catch (ObjectOptimisticLockingFailureException e) {
 			throw new RuntimeException("Product was modified by another transaction. Please refresh and try again.");
 		}
 	}
 
 	@Override
-	public void deleteProduct(Long id) {
-		productRepository.deleteById(id);
-
+	public boolean deleteProduct(Long id) {
+	    if (productRepository.existsById(id)) {
+	        productRepository.deleteById(id);
+	        return true; // Indicates successful deletion
+	    }
+	    return false; // Indicates product not found
 	}
 
 }
