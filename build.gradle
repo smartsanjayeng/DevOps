@@ -7,7 +7,7 @@ plugins {
 
 group = 'com.devops.shopping'
 //version = '0.0.1-SNAPSHOT' // Snapshot for Development environment
-version = '0.0.1' 		     // Release for Production environment
+version = '1.0.0' 		     // Release for Production environment
 
 java {
 	toolchain {
@@ -38,8 +38,8 @@ publishing {
             from components.java  			 // This publishes the JAR file
             groupId = 'com.devops.shopping'  // Set your group ID
             artifactId = 'shopping-app'      // Set your artifact ID
-            //version = '0.0.1-SNAPSHOT'       // Set your version for Snapshot for Development environment
-            version = '0.0.1-SNAPSHOT'         // Set your version for Release for Production environment
+            //version = '0.0.1-SNAPSHOT'       // Set your version Snapshot for Development environment
+            version = '1.0.0'         // Set your version Release for Production environment
         }
     }
 
@@ -47,7 +47,7 @@ publishing {
         maven {
             name = "Nexus"
             //url = uri("http://localhost:8081/repository/maven-snapshots/")  // Set your Nexus URL for Snapshots for Development environment
-            url = uri("http://localhost:8081/repository/maven-release/")      // Set your Nexus URL for Snapshots for Production environment
+            url = uri("http://localhost:8081/repository/maven-releases/")      // Set your Nexus URL for Snapshots for Production environment
             // Allow insecure protocols (HTTP)
             allowInsecureProtocol = true
 
