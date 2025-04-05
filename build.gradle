@@ -38,7 +38,8 @@ publishing {
             from components.java  			 // This publishes the JAR file
             groupId = 'com.devops.shopping'  // Set your group ID
             artifactId = 'shopping-app'      // Set your artifact ID
-            version = '0.0.1-SNAPSHOT'       // Set your version
+            //version = '0.0.1-SNAPSHOT'       // Set your version for Snapshot for Development environment
+            version = '0.0.1-SNAPSHOT'         // Set your version for Release for Production environment
         }
     }
 
