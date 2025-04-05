@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NEXUS_USER = credentials('nexus_credentials')
-        NEXUS_PASS = credentials('nexus_credentials')
+        NEXUS_CREDS = credentials('nexus_credentials')  // Assuming 'Username with password' credentials in Jenkins
     }
 
     stages {
@@ -16,16 +15,16 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Starting Clean & Build...'
-        		bat 'gradlew clean build'
-        		echo 'Build completed.'
+                bat 'gradlew clean build'
+                echo 'Build completed.'
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Starting Junit Test...'
-        		bat 'gradlew test'
-        		echo 'Junit Test completed.'
+                echo 'Starting JUnit Test Cases...'
+                bat 'gradlew test'
+                echo 'JUnit Test Cases completed.'
             }
             post {
                 always {
@@ -33,19 +32,40 @@ pipeline {
                 }
             }
         }
-		
-		stage('Publish to Nexus') {
+
+        stage('Publish to Nexus') {
             steps {
-				echo 'Starting Publishing Jar file fo Nexus Repository...'
-                bat "gradlew publish -PnexusUsername=${env.NEXUS_USER} -PnexusPassword=${env.NEXUS_PASS}"
+                echo 'Starting Publishing Jar file to Nexus Repository...'
+                bat "gradlew publish -PnexusUsername=${env.NEXUS_CREDS_USR} -PnexusPassword=${env.NEXUS_CREDS_PSW}"
                 echo 'Publishing completed.'
             }
         }
-        
+
+        stage('Archive Artifact') {
+            steps {
+                echo 'Archiving JAR file...'
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+                echo 'JAR file archived in Jenkins.'
+            }
+        }
+
         stage('Deploy') {
             steps {
                 echo "Deploying application..."
+                // Add deployment steps here (Docker, Kubernetes, etc.)
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
