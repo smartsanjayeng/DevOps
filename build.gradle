@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.4.3'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'maven-publish'  // Ensure the maven-publish plugin is applied
 }
 
 group = 'com.devops.shopping'
@@ -15,16 +16,44 @@ java {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://dev.mysql.com/downloads/connector/j/' }
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.4.3'
+    implementation 'org.springframework.boot:spring-boot-starter-web:3.4.3'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.4.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.8.2'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+// Publishing configuration
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java  			 // This publishes the JAR file
+            groupId = 'com.devops.shopping'  // Set your group ID
+            artifactId = 'shopping-app'      // Set your artifact ID
+            version = '0.0.1-SNAPSHOT'       // Set your version
+        }
+    }
+
+    repositories {
+        maven {
+            name = "Nexus"
+            url = uri("http://localhost:8081/repository/maven-snapshots/")  // Set your Nexus URL
+            
+            // Allow insecure protocols (HTTP)
+            allowInsecureProtocol = true
+
+            credentials {
+                username = project.findProperty("nexusUsername") ?: "admin"  // Nexus username
+                password = project.findProperty("nexusPassword") ?: "admin"  // Nexus password
+            }
+        }
+    }
 }
