@@ -7,7 +7,7 @@ plugins {
 
 group = 'com.devops.shopping'
 //version = '0.0.1-SNAPSHOT' // Snapshot for Development environment
-version = '1.0.0' 		     // Release for Production environment
+version = '1.0.1' 		     // Release for Production environment
 
 java {
 	toolchain {
@@ -39,7 +39,7 @@ publishing {
             groupId = 'com.devops.shopping'  // Set your group ID
             artifactId = 'shopping-app'      // Set your artifact ID
             //version = '0.0.1-SNAPSHOT'       // Set your version Snapshot for Development environment
-            version = '1.0.0'         // Set your version Release for Production environment
+            version = '1.0.1'         // Set your version Release for Production environment
         }
     }
 
