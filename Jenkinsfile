@@ -30,6 +30,7 @@ pipeline {
                         env.DEPLOY_PORT = '8084'
                         env.SPRING_PROFILE = 'prod'
                     }
+                    echo "Environment: ${params.DEPLOY_ENV}, Port: ${env.DEPLOY_PORT}, Profile: ${env.SPRING_PROFILE}"
                 }
             }
         }
@@ -69,42 +70,30 @@ pipeline {
             }
         }
 
-        stage('Archive Artifact') {
+        stage('Kill Process on Port') {
             steps {
-                echo 'Archiving JAR file...'
-                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-                echo 'JAR file archived in Jenkins.'
+                script {
+                    echo "Attempting to kill any process running on port ${env.DEPLOY_PORT}..."
+                    try {
+                        bat """
+                        FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :${env.DEPLOY_PORT} ^| findstr LISTENING') DO (
+                            echo Killing process with PID %%a on port ${env.DEPLOY_PORT}...
+                            taskkill /F /PID %%a
+                        )
+                        """
+                        echo "Process on port ${env.DEPLOY_PORT} killed successfully (if any)."
+                    } catch (Exception e) {
+                        echo "No process found running on port ${env.DEPLOY_PORT}, or failed to kill process: ${e.getMessage()}"
+                    }
+                }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Application') {
             steps {
                 echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
-
-                // Stop existing process if running
-                bat '''
-                FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :%DEPLOY_PORT% ^| findstr LISTENING') DO (
-                    taskkill /F /PID %%a
-                )
-                '''
-
-                // Run the application JAR
-                bat "java -jar build\\libs\\*.jar --spring.profiles.active=${env.SPRING_PROFILE} --server.port=${env.DEPLOY_PORT}"
-
-                echo "Deployment completed."
+                bat "java -jar build/libs/shopping-app-1.0.0.jar --server.port=${env.DEPLOY_PORT} --spring.profiles.active=${env.SPRING_PROFILE}"
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline completed.'
-        }
-        success {
-            echo 'Pipeline succeeded!'
-        }
-        failure {
-            echo 'Pipeline failed!'
         }
     }
 }
