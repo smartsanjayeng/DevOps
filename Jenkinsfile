@@ -51,6 +51,14 @@ pipeline {
                 echo '🛠️ Build completed'
             }
         }
+		
+		stage('Archive Artifact') {
+            steps {
+                echo 'Archiving JAR file...'
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+                echo 'JAR file archived in Jenkins.'
+            }
+        }
 
         stage('Publish to Nexus') {
             steps {
@@ -62,15 +70,19 @@ pipeline {
             }
         }
 
-        stage('Deploy Application') {
+        stage('Deploy') {
             steps {
-                script {
-                    echo '🚀 Deploying the application...'
-                    // Sample deployment logic, you can customize it
-                    echo "Deploying to port ${env.DEPLOY_PORT}"
-                    // Add your deployment commands here
-                    echo '🚀 Deployment completed'
-                }
+                echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
+
+                bat '''
+                FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :%DEPLOY_PORT% ^| findstr LISTENING') DO (
+                    taskkill /F /PID %%a
+                )
+                '''
+
+                bat "java -jar build\\libs\\*.jar --server.port=${env.DEPLOY_PORT}"
+
+                echo "Deployment completed."
             }
         }
     }
