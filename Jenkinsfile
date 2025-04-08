@@ -51,8 +51,8 @@ pipeline {
                 echo '🛠️ Build completed'
             }
         }
-		
-		stage('Archive Artifact') {
+
+        stage('Archive Artifact') {
             steps {
                 echo 'Archiving JAR file...'
                 archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
@@ -60,27 +60,20 @@ pipeline {
             }
         }
 
-        stage('Publish to Nexus') {
-            steps {
-                script {
-                    echo '🚀 Publishing to Nexus...'
-                    bat "gradlew publish -PnexusUsername=${env.NEXUS_CREDS_USR} -PnexusPassword=${env.NEXUS_CREDS_PSW} -PrepositoryType=${env.REPOSITORY_TYPE}"
-                    echo '🚀 Publish completed'
-                }
-            }
-        }
-
         stage('Deploy') {
             steps {
                 echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
 
-                bat '''
-                FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :%DEPLOY_PORT% ^| findstr LISTENING') DO (
+                // Stop existing process if running
+                bat """
+                FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :${env.DEPLOY_PORT} ^| findstr LISTENING') DO (
+                    echo Killing process on port ${env.DEPLOY_PORT} with PID %%a
                     taskkill /F /PID %%a
-                )
-                '''
+                ) || echo No process found on port ${env.DEPLOY_PORT}
+                """
 
-                bat "java -jar build\\libs\\*.jar --server.port=${env.DEPLOY_PORT}"
+                // Run the application JAR
+                bat "start /B java -jar build\\libs\\*.jar --server.port=${env.DEPLOY_PORT}"
 
                 echo "Deployment completed."
             }
@@ -88,6 +81,10 @@ pipeline {
     }
 
     post {
+        always {
+            echo 'Cleaning up...'
+            cleanWs()
+        }
         success {
             echo '✅ Pipeline completed successfully!'
         }
