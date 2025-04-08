@@ -65,12 +65,19 @@ task incrementVersion {
 // === Git Tagging Task ===
 task gitTag {
     doLast {
-        println "🏷️ Creating Git tag for version: ${version}"
-        exec {
-            commandLine 'git', 'tag', version
-        }
-        exec {
-            commandLine 'git', 'push', 'origin', version
+        def tagName = project.version.toString()
+
+        if (tagName.endsWith('-SNAPSHOT')) {
+            println "Skipping tag creation for snapshot version: ${tagName}"
+        } else {
+            def existingTag = "git tag --list ${tagName}".execute().text.trim()
+            if (existingTag) {
+                println "Tag '${tagName}' already exists. Skipping creation."
+            } else {
+                println "🏷️ Creating Git tag for version: ${tagName}"
+                "git tag ${tagName}".execute().waitFor()
+                "git push origin ${tagName}".execute().waitFor()
+            }
         }
     }
 }
