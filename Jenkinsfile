@@ -7,58 +7,64 @@ pipeline {
     }
 
     environment {
-        NEXUS_CREDS = credentials('nexus_credentials')  // Nexus credentials
-        NEXUS_URL = 'http://localhost:9090/repository/maven-releases/'
+        NEXUS_CREDS = credentials('nexus_credentials')
+        NEXUS_URL_SNAPSHOTS = 'http://localhost:9090/repository/maven-snapshots/'
+        NEXUS_URL_RELEASES = 'http://localhost:9090/repository/maven-releases/'
+        DEPLOY_PORT = ''
+        REPOSITORY_TYPE = ''
     }
 
     stages {
+
         stage('Setup Environment Variables') {
             steps {
                 script {
-                    switch(params.DEPLOY_ENV) {
-                        case 'Dev':
-                            env.DEPLOY_PORT = '8081'
-                            env.SPRING_PROFILE = 'dev'
-                            break
-                        case 'SIT':
-                            env.DEPLOY_PORT = '8082'
-                            env.SPRING_PROFILE = 'sit'
-                            break
-                        case 'UAT':
-                            env.DEPLOY_PORT = '8083'
-                            env.SPRING_PROFILE = 'uat'
-                            break
-                        case 'Prod':
-                            env.DEPLOY_PORT = '8084'
-                            env.SPRING_PROFILE = 'prod'
-                            break
-                        default:
-                            error "Unknown DEPLOY_ENV: ${params.DEPLOY_ENV}"
+                    if (params.DEPLOY_ENV in ['Dev', 'SIT']) {
+                        env.REPOSITORY_TYPE = 'snapshots'
+                        env.DEPLOY_PORT = (params.DEPLOY_ENV == 'Dev') ? '8081' : '8082'
+                    } else {
+                        env.REPOSITORY_TYPE = 'releases'
+                        env.DEPLOY_PORT = (params.DEPLOY_ENV == 'UAT') ? '8083' : '8084'
                     }
-                    echo "Environment: ${params.DEPLOY_ENV}, Port: ${env.DEPLOY_PORT}, Profile: ${env.SPRING_PROFILE}"
+                    echo "🧩 Deploy Environment: ${params.DEPLOY_ENV}"
+                    echo "🚀 Repository Type: ${env.REPOSITORY_TYPE}"
+                    echo "🚪 Deploy Port: ${env.DEPLOY_PORT}"
                 }
             }
         }
 
         stage('Clone Repository') {
             steps {
+				echo 'Cloning Git Repository project...'
                 git branch: params.BRANCH_NAME, url: 'https://github.com/smartsanjayeng/DevOps.git'
+                echo 'Cloning Git Repository Completed'
+            }
+        }
+
+        stage('Increment Version & Git Tag') {
+            steps {
+                script {
+                    echo '🔢 Incrementing version and tagging Git...'
+                    bat "gradlew incrementVersion -PrepositoryType=${env.REPOSITORY_TYPE}"
+                    bat "gradlew gitTag -PrepositoryType=${env.REPOSITORY_TYPE}"
+                    echo '🔢 Incrementing version and tagging Git done'
+                }
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Starting Clean & Build...'
-                bat 'gradlew clean build'
-                echo 'Build completed.'
+                echo '🛠️ Building the project...'
+                bat "gradlew clean build -PrepositoryType=${env.REPOSITORY_TYPE}"
+                echo '🛠️ Build completed'
             }
         }
 
         stage('Run Tests') {
             steps {
-                echo 'Starting JUnit Test Cases...'
-                bat 'gradlew test'
-                echo 'JUnit Test Cases completed.'
+                echo '🧪 Running tests...'
+                bat "gradlew test"
+                echo '🧪 Running tests completed'
             }
             post {
                 always {
@@ -69,36 +75,41 @@ pipeline {
 
         stage('Publish to Nexus') {
             steps {
-                echo 'Starting Publishing JAR file to Nexus Repository...'
-                bat "gradlew publish -PnexusUsername=${env.NEXUS_CREDS_USR} -PnexusPassword=${env.NEXUS_CREDS_PSW} -PnexusUrl=${env.NEXUS_URL}"
-                echo 'Publishing completed.'
-            }
-        }
-
-        stage('Kill Process on Port') {
-            steps {
-                script {
-                    echo "Attempting to kill any process running on port ${env.DEPLOY_PORT}..."
-                    try {
-                        bat """
-                        FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :${env.DEPLOY_PORT} ^| findstr LISTENING') DO (
-                            echo Killing process with PID %%a on port ${env.DEPLOY_PORT}...
-                            taskkill /F /PID %%a
-                        )
-                        """
-                        echo "Process on port ${env.DEPLOY_PORT} killed successfully (if any)."
-                    } catch (Exception e) {
-                        echo "No process found running on port ${env.DEPLOY_PORT}, or failed to kill process: ${e.getMessage()}"
-                    }
-                }
+                echo "🚀 Publishing to Nexus (${env.REPOSITORY_TYPE} repository)..."
+                bat "gradlew publish -PnexusUsername=${env.NEXUS_CREDS_USR} -PnexusPassword=${env.NEXUS_CREDS_PSW} -PrepositoryType=${env.REPOSITORY_TYPE}"
+                echo "🚀 Published to Nexus (${env.REPOSITORY_TYPE} repository)"
             }
         }
 
         stage('Deploy Application') {
             steps {
-                echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
-                bat "java -jar build/libs/shopping-app-1.0.1.jar --server.port=${env.DEPLOY_PORT} --spring.profiles.active=${env.SPRING_PROFILE}"
+                script {
+                    echo "🚀 Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
+                    bat '''
+                    for /f "delims=" %%i in (version.txt) do set VERSION=%%i
+                    set JAR_NAME=shopping-app-%VERSION%.jar
+                    echo 🧩 Running application: build\\libs\\%JAR_NAME%
+                    java -jar build\\libs\\%JAR_NAME% --server.port=%DEPLOY_PORT%
+                    '''
+                    echo "🚀 Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT} completed"
+                }
             }
+        }
+
+        stage('Archive Artifact') {
+            steps {
+                archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
+                echo '📦 Artifact archived for download.'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Build completed successfully!'
+        }
+        failure {
+            echo '❌ Build failed!'
         }
     }
 }
