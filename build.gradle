@@ -46,8 +46,8 @@ publishing {
     repositories {
         maven {
             name = "Nexus"
-            //url = uri("http://localhost:8081/repository/maven-snapshots/")  // Set your Nexus URL for Snapshots for Development environment
-            url = uri("http://localhost:8081/repository/maven-releases/")      // Set your Nexus URL for Snapshots for Production environment
+            //url = uri("http://localhost:9090/repository/maven-snapshots/")  // Set your Nexus URL for Snapshots for Development environment
+            url = uri("http://localhost:9090/repository/maven-releases/")      // Set your Nexus URL for Snapshots for Production environment
             // Allow insecure protocols (HTTP)
             allowInsecureProtocol = true
 
