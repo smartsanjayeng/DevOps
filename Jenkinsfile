@@ -15,18 +15,25 @@ pipeline {
         stage('Setup Environment Variables') {
             steps {
                 script {
-                    if (params.DEPLOY_ENV == 'Dev') {
-                        env.DEPLOY_PORT = '8081'
-                        env.SPRING_PROFILE = 'dev'
-                    } else if (params.DEPLOY_ENV == 'SIT') {
-                        env.DEPLOY_PORT = '8082'
-                        env.SPRING_PROFILE = 'sit'
-                    } else if (params.DEPLOY_ENV == 'UAT') {
-                        env.DEPLOY_PORT = '8083'
-                        env.SPRING_PROFILE = 'uat'
-                    } else if (params.DEPLOY_ENV == 'Prod') {
-                        env.DEPLOY_PORT = '8084'
-                        env.SPRING_PROFILE = 'prod'
+                    switch(params.DEPLOY_ENV) {
+                        case 'Dev':
+                            env.DEPLOY_PORT = '8081'
+                            env.SPRING_PROFILE = 'dev'
+                            break
+                        case 'SIT':
+                            env.DEPLOY_PORT = '8082'
+                            env.SPRING_PROFILE = 'sit'
+                            break
+                        case 'UAT':
+                            env.DEPLOY_PORT = '8083'
+                            env.SPRING_PROFILE = 'uat'
+                            break
+                        case 'Prod':
+                            env.DEPLOY_PORT = '8084'
+                            env.SPRING_PROFILE = 'prod'
+                            break
+                        default:
+                            error "Unknown DEPLOY_ENV: ${params.DEPLOY_ENV}"
                     }
                     echo "Environment: ${params.DEPLOY_ENV}, Port: ${env.DEPLOY_PORT}, Profile: ${env.SPRING_PROFILE}"
                 }
