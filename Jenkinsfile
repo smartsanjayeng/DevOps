@@ -10,26 +10,21 @@ pipeline {
         NEXUS_CREDS = credentials('nexus_credentials')
         NEXUS_URL_SNAPSHOTS = 'http://localhost:9090/repository/maven-snapshots/'
         NEXUS_URL_RELEASES = 'http://localhost:9090/repository/maven-releases/'
-        DEPLOY_PORT = ''
-        REPOSITORY_TYPE = ''
+        
+ 		// FIX: Dynamically calculate repository type based on DEPLOY_ENV
+        REPOSITORY_TYPE = "${params.DEPLOY_ENV in ['Dev', 'SIT'] ? 'snapshots' : 'releases'}"
+        DEPLOY_PORT = "${params.DEPLOY_ENV == 'Dev' ? '8081' : params.DEPLOY_ENV == 'SIT' ? '8082' : params.DEPLOY_ENV == 'UAT' ? '8083' : '8084'}"
     }
 
     stages {
 
         stage('Setup Environment Variables') {
+			
+            stage('Print Environment Variables') {
             steps {
-                script {
-                    if (params.DEPLOY_ENV in ['Dev', 'SIT']) {
-                        env.REPOSITORY_TYPE = 'snapshots'
-                        env.DEPLOY_PORT = (params.DEPLOY_ENV == 'Dev') ? '8081' : '8082'
-                    } else {
-                        env.REPOSITORY_TYPE = 'releases'
-                        env.DEPLOY_PORT = (params.DEPLOY_ENV == 'UAT') ? '8083' : '8084'
-                    }
-                    echo "🧩 Deploy Environment: ${params.DEPLOY_ENV}"
-                    echo "🚀 Repository Type: ${env.REPOSITORY_TYPE}"
-                    echo "🚪 Deploy Port: ${env.DEPLOY_PORT}"
-                }
+                echo "🧩 Deploy Environment: ${params.DEPLOY_ENV}"
+                echo "🚀 Repository Type: ${env.REPOSITORY_TYPE}"
+                echo "🚪 Deploy Port: ${env.DEPLOY_PORT}"
             }
         }
 
@@ -64,7 +59,7 @@ pipeline {
             steps {
                 echo '🧪 Running tests...'
                 bat "gradlew test"
-                echo '🧪 Running tests completed'
+                echo '🧪 Tests completed'
             }
             post {
                 always {
