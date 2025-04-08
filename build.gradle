@@ -1,22 +1,40 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.4.3'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'maven-publish'  // Ensure the maven-publish plugin is applied
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'maven-publish'
 }
 
 group = 'com.devops.shopping'
-//version = '0.0.1-SNAPSHOT' // Snapshot for Development environment
-version = '1.0.1' 		     // Release for Production environment
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+// === Version Handling ===
+
+// Ensure version.txt exists
+def versionFile = file('version.txt')
+if (!versionFile.exists()) {
+    println "⚠️ version.txt not found. Creating default version 1.0.0-SNAPSHOT"
+    versionFile.text = '1.0.0-SNAPSHOT'
 }
 
+def versionText = versionFile.text.trim()
+version = versionText
+
+println "🧩 Current Project Version: ${version}"
+
+// Dynamic repository type (default SNAPSHOT)
+def repositoryType = project.hasProperty('repositoryType') ? project.repositoryType : (version.contains('SNAPSHOT') ? 'snapshots' : 'releases')
+println "📦 Repository Type: ${repositoryType}"
+
+// === Java Version ===
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// === Dependencies ===
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
@@ -28,32 +46,54 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }
 
-// Publishing configuration
+// === Increment Version Task ===
+task incrementVersion {
+    doLast {
+        println '🔢 Incrementing project version...'
+        def parts = versionText.tokenize('.')
+        def patchPart = parts[-1].replaceAll("-SNAPSHOT", "").toInteger() + 1
+        def isSnapshot = repositoryType == 'snapshots'
+        def newVersion = "${parts[0]}.${parts[1]}.${patchPart}${isSnapshot ? '-SNAPSHOT' : ''}"
+        versionFile.text = newVersion
+        println "✅ New Version Written: ${newVersion}"
+    }
+}
+
+// === Git Tagging Task ===
+task gitTag {
+    doLast {
+        println "🏷️ Creating Git tag for version: ${version}"
+        exec {
+            commandLine 'git', 'tag', version
+        }
+        exec {
+            commandLine 'git', 'push', 'origin', version
+        }
+    }
+}
+
+// === Publishing Configuration ===
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java  			 // This publishes the JAR file
-            groupId = 'com.devops.shopping'  // Set your group ID
-            artifactId = 'shopping-app'      // Set your artifact ID
-            //version = '0.0.1-SNAPSHOT'       // Set your version Snapshot for Development environment
-            version = '1.0.1'         // Set your version Release for Production environment
+            from components.java
+            groupId = 'com.devops.shopping'
+            artifactId = 'shopping-app'
+            version = project.version
         }
     }
 
     repositories {
         maven {
             name = "Nexus"
-            //url = uri("http://localhost:9090/repository/maven-snapshots/")  // Set your Nexus URL for Snapshots for Development environment
-            url = uri("http://localhost:9090/repository/maven-releases/")      // Set your Nexus URL for Snapshots for Production environment
-            // Allow insecure protocols (HTTP)
+            url = uri("http://localhost:9090/repository/maven-${repositoryType}/")
             allowInsecureProtocol = true
-
             credentials {
-                username = project.findProperty("nexusUsername") ?: "admin"  // Nexus username
-                password = project.findProperty("nexusPassword") ?: "admin"  // Nexus password
+                username = project.findProperty("nexusUsername") ?: System.getenv("NEXUS_USERNAME")
+                password = project.findProperty("nexusPassword") ?: System.getenv("NEXUS_PASSWORD")
             }
         }
     }
