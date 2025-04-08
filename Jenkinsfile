@@ -8,8 +8,6 @@ pipeline {
 
     environment {
         NEXUS_CREDS = credentials('nexus_credentials')  // Nexus credentials
-        DEPLOY_PORT = '' // Dynamic port assignment based on environment
-        SPRING_PROFILE = '' // Spring profile for environment
         NEXUS_URL = 'http://localhost:9090/repository/maven-releases/'
     }
 
