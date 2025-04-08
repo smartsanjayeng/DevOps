@@ -10,7 +10,7 @@ pipeline {
         NEXUS_CREDS = credentials('nexus_credentials')  // Nexus credentials
         DEPLOY_PORT = '' // Dynamic port assignment based on environment
         SPRING_PROFILE = '' // Spring profile for environment
-        NEXUS_URL = 'http://localhost:8081/repository/maven-releases/'
+        NEXUS_URL = 'http://localhost:9090/repository/maven-releases/'
     }
 
     stages {
@@ -92,7 +92,7 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
-                bat "java -jar build/libs/shopping-app-1.0.0.jar --server.port=${env.DEPLOY_PORT} --spring.profiles.active=${env.SPRING_PROFILE}"
+                bat "java -jar build/libs/shopping-app-1.0.1.jar --server.port=${env.DEPLOY_PORT} --spring.profiles.active=${env.SPRING_PROFILE}"
             }
         }
     }
