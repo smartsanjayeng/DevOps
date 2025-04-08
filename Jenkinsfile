@@ -83,7 +83,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up...'
-            cleanWs()
+            //cleanWs()
         }
         success {
             echo '✅ Pipeline completed successfully!'
