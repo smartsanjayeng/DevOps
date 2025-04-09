@@ -79,7 +79,7 @@ pipeline {
                     // Get absolute path of the workspace and set the JAR file path
                     def workspacePath = pwd()
                     echo "Workspace Path: ${workspacePath}"
-                    def jarPath = "${workspacePath}\\build\\libs\\*.jar"
+                    def jarPath = "${workspacePath}\\build\\libs\\*SNAPSHOT.jar"
                     
                     // Check if the JAR file exists
                     bat """
