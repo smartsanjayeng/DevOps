@@ -3,6 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.4.3'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'maven-publish'
+    id 'jacoco'
 }
 
 group = 'com.devops.shopping'
@@ -12,18 +13,18 @@ group = 'com.devops.shopping'
 // Ensure version.txt exists
 def versionFile = file('version.txt')
 if (!versionFile.exists()) {
-    println "⚠️ version.txt not found. Creating default version 1.0.0-SNAPSHOT"
+    println "version.txt not found. Creating default version 1.0.0-SNAPSHOT"
     versionFile.text = '1.0.0-SNAPSHOT'
 }
 
 def versionText = versionFile.text.trim()
 version = versionText
 
-println "🧩 Current Project Version: ${version}"
+println "Current Project Version: ${version}"
 
 // Dynamic repository type (default SNAPSHOT)
 def repositoryType = project.hasProperty('repositoryType') ? project.repositoryType : (version.contains('SNAPSHOT') ? 'snapshots' : 'releases')
-println "📦 Repository Type: ${repositoryType}"
+println "Repository Type: ${repositoryType}"
 
 // === Java Version ===
 java {
@@ -45,20 +46,16 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.8.2'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
-}
-
 // === Increment Version Task ===
 task incrementVersion {
     doLast {
-        println '🔢 Incrementing project version...'
+        println 'Incrementing project version...'
         def parts = versionText.tokenize('.')
         def patchPart = parts[-1].replaceAll("-SNAPSHOT", "").toInteger() + 1
         def isSnapshot = repositoryType == 'snapshots'
         def newVersion = "${parts[0]}.${parts[1]}.${patchPart}${isSnapshot ? '-SNAPSHOT' : ''}"
         versionFile.text = newVersion
-        println "✅ New Version Written: ${newVersion}"
+        println "New Version Written: ${newVersion}"
     }
 }
 
@@ -74,7 +71,7 @@ task gitTag {
             if (existingTag) {
                 println "Tag '${tagName}' already exists. Skipping creation."
             } else {
-                println "🏷️ Creating Git tag for version: ${tagName}"
+                println "Creating Git tag for version: ${tagName}"
                 "git tag ${tagName}".execute().waitFor()
                 "git push origin ${tagName}".execute().waitFor()
             }
@@ -103,5 +100,29 @@ publishing {
                 password = project.findProperty("nexusPassword") ?: System.getenv("NEXUS_PASSWORD")
             }
         }
+    }
+    
+	tasks.named('test') {
+	 	useJUnitPlatform()
+	    finalizedBy 'jacocoTestReport'
+	}
+
+    tasks.jacocoTestReport {
+	    dependsOn test
+	    reports {
+	        xml.required.set(true)
+	        html.required.set(true)
+    	}
+	}
+	
+    tasks.jacocoTestCoverageVerification {
+    	dependsOn jacocoTestReport
+    	violationRules { 
+    		rule {
+    			limit {
+    				minimum = 0.5 //Ensure at least 50% coverage
+    			}
+    		}
+    	}
     }
 }
