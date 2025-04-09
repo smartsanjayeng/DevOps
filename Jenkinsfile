@@ -60,43 +60,44 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-		    steps {
-		        echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
-
-	        // Stop existing process if running
-	        bat """
-	        FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :${env.DEPLOY_PORT} ^| findstr LISTENING') DO (
-	            echo Killing process on port ${env.DEPLOY_PORT} with PID %%a
-	            taskkill /F /PID %%a
-	        )
-	        IF ERRORLEVEL 1 (
-	            echo No process found on port ${env.DEPLOY_PORT}
-	        )
-	        """
-	
-	        // Get absolute path of the workspace
-	        def workspacePath = pwd()
-	
-	        // Set the absolute path to the JAR file
-	        def jarPath = "${workspacePath}\\build\\libs\\*.jar"
-	
-	        // Check if the JAR file exists
-	        bat """
-	        echo Current Directory: %cd%
-	        echo Workspace Path: ${workspacePath}
-	        IF EXIST ${jarPath} (
-	            echo JAR file found: ${jarPath}
-	            start \"ShoppingCart\" cmd /c \"java -jar ${jarPath} --server.port=${env.DEPLOY_PORT}\"
-	        ) ELSE (
-	            echo ERROR: JAR file not found at ${jarPath}
-	            exit /B 1
-	        )
-	        """
-	
-	        echo "Deployment completed."
-	        }
-		}
+		stage('Deploy') {
+            steps {
+                script {
+                    echo "Deploying application to ${params.DEPLOY_ENV} environment on port ${env.DEPLOY_PORT}..."
+                    
+                    // Stop existing process if running
+                    bat """
+                    FOR /F "tokens=5" %%a IN ('netstat -aon ^| findstr :${env.DEPLOY_PORT} ^| findstr LISTENING') DO (
+                        echo Killing process on port ${env.DEPLOY_PORT} with PID %%a
+                        taskkill /F /PID %%a
+                    )
+                    IF ERRORLEVEL 1 (
+                        echo No process found on port ${env.DEPLOY_PORT}
+                    )
+                    """
+                    
+                    // Get absolute path of the workspace and set the JAR file path
+                    def workspacePath = pwd()
+                    echo "Workspace Path: ${workspacePath}"
+                    def jarPath = "${workspacePath}\\build\\libs\\*.jar"
+                    
+                    // Check if the JAR file exists
+                    bat """
+                    echo Current Directory: %cd%
+                    echo JAR file path: ${jarPath}
+                    IF EXIST ${jarPath} (
+                        echo JAR file found: ${jarPath}
+                        start \"ShoppingCart\" cmd /c \"java -jar ${jarPath} --server.port=${env.DEPLOY_PORT}\"
+                    ) ELSE (
+                        echo ERROR: JAR file not found at ${jarPath}
+                        exit /B 1
+                    )
+                    """
+                    
+                    echo "Deployment completed."
+                }
+            }
+        }
     }
 
     post {
