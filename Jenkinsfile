@@ -56,7 +56,7 @@ pipeline {
             steps {
                 echo 'Archiving JAR file...'
                 archiveArtifacts artifacts: 'build/libs/*.jar', fingerprint: true
-                echo 'JAR file archived in Jenkins.'
+                echo 'JAR file successfully archived in Jenkins.'
             }
         }
 
@@ -75,8 +75,9 @@ pipeline {
 		        )
 		        """
 		
-		        // Run the application JAR
-		        bat "start /B java -jar build\\libs\\*.jar --server.port=${env.DEPLOY_PORT}"
+		        // Start the application in new window and keep running even Jenkins job completion
+        		bat "start \"ShoppingCart\" cmd /c \"java -jar build\\libs\\*.jar --server.port=${env.DEPLOY_PORT}\""
+
 		
 		        echo "Deployment completed."
 		    }
