@@ -95,6 +95,7 @@ pipeline {
 	        """
 	
 	        echo "Deployment completed."
+	        }
 		}
     }
 
